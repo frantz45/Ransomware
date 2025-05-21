@@ -133,9 +133,11 @@ void encryptDecrypt(uint8_t *input, uint64_t size) {
 void writefile(const uint8_t *name, uint8_t *content, uint64_t size) {
 	FILE *fp = fopen(name, "wb");
 	if (fp == NULL) {
+		fclose(fp);
 		return;
 	}
 	fwrite(content, 1, size, fp);
+	fclose(fp);
 }
 
 int readfile(const uint8_t *name) {
